@@ -87,30 +87,45 @@ export async function createApp(config: ProjectConfig): Promise<void> {
     await git.commit('Initial commit');
     
     if (createGithubRepo) {
-      await git.addRemote('origin', `https://github.com/${actualGithubRepo}.git`);
-      
-      // Push the initial commit to GitHub - important for submodule to work
-      console.log(chalk.blue(`Pushing initial commit to GitHub repository...`));
+      // Check if remote 'origin' already exists and remove it if it does
       try {
-        await git.push('origin', 'main', ['--set-upstream']);
-      } catch (pushError) {
-        // Try with master branch if main failed
-        try {
-          await git.push('origin', 'master', ['--set-upstream']);
-        } catch (masterError) {
-          console.log(chalk.yellow(`⚠️ Could not push to remote repository. You may need to push manually.`));
-          console.log(chalk.yellow(`   Run: cd ${appPath} && git push -u origin main`));
+        const remotes = await git.getRemotes();
+        const originExists = remotes.some(remote => remote.name === 'origin');
+        
+        if (originExists) {
+          console.log(chalk.yellow(`⚠️ Remote 'origin' already exists, updating it with the new URL...`));
+          await git.remote(['remove', 'origin']);
         }
+        
+        await git.addRemote('origin', `https://github.com/${actualGithubRepo}.git`);
+        
+        // Push the initial commit to GitHub - important for submodule to work
+        console.log(chalk.blue(`Pushing initial commit to GitHub repository...`));
+        try {
+          await git.push('origin', 'main', ['--set-upstream']);
+        } catch (pushError) {
+          // Try with master branch if main failed
+          try {
+            await git.push('origin', 'master', ['--set-upstream']);
+          } catch (masterError) {
+            console.log(chalk.yellow(`⚠️ Could not push to remote repository. You may need to push manually.`));
+            console.log(chalk.yellow(`   Run: cd ${appPath} && git push -u origin main`));
+          }
+        }
+        
+        console.log(chalk.green(`✅ Git repository initialized with remote and initial commit pushed`));
+      } catch (error) {
+        console.log(chalk.red(`❌ Error setting up remote: ${error instanceof Error ? error.message : 'Unknown error'}`));
+        console.log(chalk.yellow(`You may need to manually set the remote with:`));
+        console.log(chalk.yellow(`   cd ${appPath} && git remote add origin https://github.com/${actualGithubRepo}.git`));
       }
-      
-      console.log(chalk.green(`✅ Git repository initialized with remote and initial commit pushed`));
     } else {
       console.log(chalk.green(`✅ Git repository initialized locally`));
     }
 
     // Add as submodule to the main repository
     console.log(chalk.blue(`Adding as submodule to the main repository`));
-    
+
     // First check if workspaceRoot is actually a git repository
     try {
       const mainGit = simpleGit({ baseDir: workspaceRoot });
@@ -118,11 +133,70 @@ export async function createApp(config: ProjectConfig): Promise<void> {
       // Verify this is a git repository (this will throw if not)
       await mainGit.revparse(['--git-dir']);
       
-      await mainGit.submoduleAdd(`https://github.com/${actualGithubRepo}.git`, `apps/${name}`);
-      await mainGit.add(`.gitmodules`);
-      await mainGit.commit(`Add ${name} as a submodule`);
+      // Make sure the push has been processed by GitHub - add a small delay
+      if (createGithubRepo) {
+        console.log(chalk.blue(`Waiting for GitHub to process the push before adding submodule...`));
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+      }
       
-      console.log(chalk.green(`✅ Added as submodule to the main repository`));
+      // Check if the submodule path already exists to avoid errors
+      const submodulePath = path.join(workspaceRoot, 'apps', name);
+      try {
+        const stats = await fs.stat(submodulePath);
+        if (stats.isDirectory()) {
+          // If directory exists but is our newly created app, we can remove it before adding submodule
+          if (submodulePath === appPath) {
+            console.log(chalk.yellow(`Removing directory before adding as submodule...`));
+            await fs.rm(submodulePath, { recursive: true, force: true });
+          } else {
+            throw new Error(`Directory 'apps/${name}' already exists and seems to be different from our newly created app`);
+          }
+        }
+      } catch (statError) {
+        // Directory doesn't exist, which is good for adding a submodule
+      }
+      
+      // Add the submodule
+      try {
+        console.log(chalk.blue(`Running: git submodule add https://github.com/${actualGithubRepo}.git apps/${name}`));
+        await mainGit.submoduleAdd(`https://github.com/${actualGithubRepo}.git`, `apps/${name}`);
+        await mainGit.add(`.gitmodules`);
+        await mainGit.commit(`Add ${name} as a submodule`);
+        
+        console.log(chalk.green(`✅ Added as submodule to the main repository`));
+      } catch (submoduleError) {
+        console.error(chalk.red(`❌ Failed to add submodule: ${submoduleError instanceof Error ? submoduleError.message : 'Unknown error'}`));
+        console.log(chalk.yellow(`💡 Attempting alternative method to add submodule...`));
+        
+        try {
+          // Use command line git directly as an alternative method
+          const { execSync } = require('child_process');
+          
+          // Change to the workspace root
+          process.chdir(workspaceRoot);
+          
+          // Remove the directory if it exists
+          try {
+            await fs.rm(path.join(workspaceRoot, 'apps', name), { recursive: true, force: true });
+          } catch (rmError) {
+            // Ignore errors during removal
+          }
+          
+          // Run git submodule add command directly
+          execSync(`git submodule add https://github.com/${actualGithubRepo}.git apps/${name}`, { stdio: 'inherit' });
+          execSync(`git add .gitmodules`, { stdio: 'inherit' });
+          execSync(`git commit -m "Add ${name} as a submodule"`, { stdio: 'inherit' });
+          
+          console.log(chalk.green(`✅ Added as submodule to the main repository using alternative method`));
+        } catch (altError) {
+          console.error(chalk.red(`❌ Alternative method also failed: ${altError instanceof Error ? altError.message : 'Unknown error'}`));
+          console.log(chalk.yellow(`💡 The project has been created but not added as a submodule.`));
+          console.log(chalk.yellow(`💡 To add it manually, run the following commands from your workspace root:`));
+          console.log(chalk.yellow(`   git submodule add https://github.com/${actualGithubRepo}.git apps/${name}`));
+          console.log(chalk.yellow(`   git add .gitmodules`));
+          console.log(chalk.yellow(`   git commit -m "Add ${name} as a submodule"`));
+        }
+      }
     } catch (error) {
       console.error(chalk.red(`❌ Could not add as submodule: ${error instanceof Error ? error.message : 'Unknown error'}`));
       console.log(chalk.yellow(`💡 The project has been created but not added as a submodule.`));
