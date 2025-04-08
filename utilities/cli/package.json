@@ -5,7 +5,8 @@
   "description": "CLI tool to generate new Nettie standalone apps and register them as submodules",
   "version": "0.1.0",
   "bin": {
-    "nettie-create": "./bin/nettie-create.ts"
+    "nettie-create": "./bin/nettie-create.ts",
+    "nettie": "./bin/nettie.ts"
   },
   "scripts": {
     "start": "bun run src/index.ts",

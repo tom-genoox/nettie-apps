@@ -19,4 +19,9 @@ export interface ProjectAnswers {
   githubRepo: string;
   createGithubRepo: boolean;
   githubToken?: string;
+}
+
+export interface CloneOptions {
+  repoUrl: string;
+  repoType: ProjectType;
 } 

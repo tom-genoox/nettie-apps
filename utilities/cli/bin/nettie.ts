@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
-import { runCLI } from '../src/index.ts';
+import { runNettieCLI } from '../src/cli.ts';
 
 // Execute the CLI
-runCLI().catch(error => {
+runNettieCLI().catch(error => {
   console.error('Error:', error.message);
   process.exit(1);
 }); 

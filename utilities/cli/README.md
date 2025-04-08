@@ -1,16 +1,16 @@
-# Nettie App Generator
+# Nettie CLI Tools
 
-A CLI tool to generate new Nettie standalone apps and utilities, create GitHub repositories, and register them as submodules in the main repository.
+A collection of CLI tools to improve the developer experience for Nettie apps development.
 
 ## Features
 
-- Creates new standalone applications in the `apps/` directory
-- Creates new utilities in the `utilities/frontend/` or `utilities/backend/` directories
-- Optionally creates GitHub repositories for new projects (using the genoox-nettie organization)
-- Automatically pushes the initial commit to GitHub repositories
-- Registers new projects as Git submodules in the main repository
-- Generates project templates with common files and configurations
-- Smart GitHub authentication with browser support and token saving
+- **nettie create**: Generate new Nettie standalone apps and utilities
+  - Creates new standalone applications in the `apps/` directory
+  - Creates new utilities in the `utilities/frontend/` or `utilities/backend/` directories
+  - Optionally creates GitHub repositories for new projects (using the genoox-nettie organization)
+  - Automatically pushes the initial commit to GitHub repositories
+  - Registers new projects as Git submodules in the main repository
+- **nettie setup**: (Coming soon) Setup your development environment with common tools and configurations
 
 ## Installation
 
@@ -19,16 +19,34 @@ A CLI tool to generate new Nettie standalone apps and utilities, create GitHub r
 From the repository root, run:
 
 ```bash
-cd utilities/dev
+cd utilities/cli
 bun install
 bun link
 ```
 
-This will make the CLI tool available globally on your system as `nettie-create`.
+This will make the CLI tool available globally on your system as `nettie` and `nettie-create`.
 
 ## Usage
 
+### Main CLI
+
+The main entry point for all Nettie tools:
+
+```bash
+nettie
+```
+
+Without arguments, this will show the help information listing all available commands.
+
+### Create Command
+
 To create a new project:
+
+```bash
+nettie create
+```
+
+Or you can use the legacy command:
 
 ```bash
 nettie-create init

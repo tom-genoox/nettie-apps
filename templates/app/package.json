@@ -1,0 +1,15 @@
+{
+  "name": "{{name}}",
+  "version": "0.1.0",
+  "description": "{{description}}",
+  "main": "index.js",
+  "scripts": {
+    "dev": "echo 'Add your development script here'",
+    "build": "echo 'Add your build script here'",
+    "start": "echo 'Add your start script here'",
+    "test": "echo 'Add your test script here'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}
