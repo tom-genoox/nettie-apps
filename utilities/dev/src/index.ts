@@ -7,7 +7,7 @@ import inquirer from 'inquirer';
 import { createApp } from './commands/createApp.ts';
 import { createUtility } from './commands/createUtility.ts';
 import type { ProjectType, ProjectAnswers } from './types/index.ts';
-import { handleGitHubAuth } from './utils/githubAuth.ts';
+import { handleGitHubAuth, getGitHubUsername } from './utils/githubAuth.ts';
 
 /**
  * Display the welcome banner
@@ -42,6 +42,37 @@ export async function runCLI(): Promise<void> {
     .command('init')
     .description('Initialize a new Nettie project')
     .action(async () => {
+      // First ask about GitHub repository creation to get token early 
+      // so we can use the username in defaults
+      const { createGithubRepo } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'createGithubRepo',
+          message: 'Do you want to create a GitHub repository automatically?',
+          default: true,
+        }
+      ]);
+      
+      // Handle GitHub authentication if needed
+      let githubToken: string | undefined;
+      let githubUsername: string = 'genoox-nettie'; // Default organization
+      
+      if (createGithubRepo) {
+        // Use our improved auth flow
+        githubToken = await handleGitHubAuth();
+        
+        // Get the authenticated username for better defaults
+        if (githubToken) {
+          try {
+            const username = await getGitHubUsername(githubToken);
+            console.log(chalk.blue(`Authenticated as GitHub user: ${username}`));
+            console.log(chalk.blue(`Will use organization: genoox-nettie for repository creation`));
+          } catch (error) {
+            console.log(chalk.yellow('Could not get GitHub username, using default organization'));
+          }
+        }
+      }
+      
       // Ask the user what type of project they want to create
       const answers = await inquirer.prompt<ProjectAnswers>([
         {
@@ -85,7 +116,7 @@ export async function runCLI(): Promise<void> {
           name: 'githubRepo',
           message: 'GitHub repository name (usually organization/repo-name):',
           default: (answers: { projectName: string }) => 
-            `tom-genoox/${answers.projectName}`,
+            `genoox-nettie/${answers.projectName}`,
           validate: (input: string) => {
             if (!input.trim()) {
               return 'GitHub repository name cannot be empty';
@@ -95,31 +126,17 @@ export async function runCLI(): Promise<void> {
             }
             return true;
           },
-        },
-        {
-          type: 'confirm',
-          name: 'createGithubRepo',
-          message: 'Do you want to create a GitHub repository automatically?',
-          default: true,
-        },
+        }
       ]);
 
       try {
-        // Handle GitHub authentication if needed
-        let githubToken: string | undefined;
-        
-        if (answers.createGithubRepo) {
-          // Use our improved auth flow
-          githubToken = await handleGitHubAuth();
-        }
-        
         switch (answers.projectType) {
           case 'app':
             await createApp({
               name: answers.projectName,
               description: answers.description,
               githubRepo: answers.githubRepo,
-              createGithubRepo: answers.createGithubRepo,
+              createGithubRepo,
               githubToken,
             });
             break;
@@ -129,7 +146,7 @@ export async function runCLI(): Promise<void> {
               name: answers.projectName,
               description: answers.description,
               githubRepo: answers.githubRepo,
-              createGithubRepo: answers.createGithubRepo,
+              createGithubRepo,
               githubToken,
               type: answers.projectType as ProjectType,
             });

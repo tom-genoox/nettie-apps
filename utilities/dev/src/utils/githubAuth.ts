@@ -55,6 +55,19 @@ export async function getGitHubToken(): Promise<string | null> {
 }
 
 /**
+ * Get the authenticated user's username
+ */
+export async function getGitHubUsername(token: string): Promise<string> {
+  try {
+    const octokit = new Octokit({ auth: token });
+    const { data } = await octokit.rest.users.getAuthenticated();
+    return data.login;
+  } catch (error) {
+    throw new Error('Failed to get GitHub username. Check your token permissions.');
+  }
+}
+
+/**
  * Save GitHub token to secure storage or file
  */
 export async function saveGitHubToken(token: string): Promise<void> {

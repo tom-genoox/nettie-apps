@@ -2,12 +2,14 @@ import { Octokit } from 'octokit';
 import fs from 'fs/promises';
 import path from 'path';
 import type { ProjectType } from '../types/index.ts';
+import chalk from 'chalk';
+import { simpleGit } from 'simple-git';
 
 interface CreateRepoParams {
   name: string;
   description: string;
   token: string;
-  org: string;
+  org?: string;
 }
 
 interface GenerateProjectFilesParams {
@@ -19,9 +21,48 @@ interface GenerateProjectFilesParams {
 }
 
 /**
+ * Find the Git repository root directory
+ * Starts from the current directory and traverses up until it finds a .git directory
+ */
+export async function findGitRoot(): Promise<string> {
+  // Start from the current directory
+  let currentDir = process.cwd();
+  const git = simpleGit();
+  
+  try {
+    // This will return the root directory of the git repository
+    const gitDir = await git.revparse(['--show-toplevel']);
+    if (gitDir) {
+      return gitDir;
+    }
+  } catch (error) {
+    // If we get an error, try the manual approach
+  }
+  
+  // Manual approach by traversing directories
+  while (currentDir !== path.parse(currentDir).root) {
+    try {
+      const gitDir = path.join(currentDir, '.git');
+      const stats = await fs.stat(gitDir);
+      
+      if (stats.isDirectory()) {
+        return currentDir;
+      }
+    } catch (error) {
+      // .git directory doesn't exist at this level
+    }
+    
+    // Move up one level
+    currentDir = path.dirname(currentDir);
+  }
+  
+  throw new Error('Not in a Git repository');
+}
+
+/**
  * Creates a new GitHub repository
  */
-export async function createGitHubRepository(params: CreateRepoParams): Promise<void> {
+export async function createGitHubRepository(params: CreateRepoParams): Promise<string> {
   const { name, description, token, org } = params;
   
   try {
@@ -29,21 +70,40 @@ export async function createGitHubRepository(params: CreateRepoParams): Promise<
       auth: token
     });
 
-    // Check if organization exists
-    try {
-      await octokit.rest.orgs.get({ org });
-    } catch (error) {
-      throw new Error(`Organization ${org} does not exist or you don't have access to it`);
+    // If org is specified, try to create in the organization
+    if (org) {
+      try {
+        // Check if organization exists and user has access
+        await octokit.rest.orgs.get({ org });
+        
+        // Create repository in the organization
+        const { data } = await octokit.rest.repos.createInOrg({
+          org,
+          name,
+          description,
+          auto_init: false,
+          private: false,
+        });
+        
+        console.log(chalk.green(`✅ Created repository in organization: ${org}/${name}`));
+        return `${org}/${name}`;
+      } catch (error) {
+        console.log(chalk.yellow(`⚠️ Could not create repository in organization: ${org}`));
+        console.log(chalk.blue('Creating repository in your personal account instead...'));
+      }
     }
-
-    // Create repository in the organization
-    await octokit.rest.repos.createInOrg({
-      org,
+    
+    // If we get here, either no org was specified or creating in the org failed
+    // Create in the user's account instead
+    const { data } = await octokit.rest.repos.createForAuthenticatedUser({
       name,
       description,
       auto_init: false,
       private: false,
     });
+    
+    console.log(chalk.green(`✅ Created repository in your personal account: ${data.owner.login}/${name}`));
+    return `${data.owner.login}/${name}`;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to create GitHub repository: ${error.message}`);
