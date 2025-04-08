@@ -22,8 +22,19 @@ This is the root repository for all Nettie applications.
    git clone https://github.com/genoox/nettie-apps.git
    cd nettie-apps
    ```
+   
+   Or to clone with all submodules in one command:
+   ```bash
+   git clone --recurse-submodules https://github.com/genoox/nettie-apps.git
+   cd nettie-apps
+   ```
 
-2. Set up each subproject as needed:
+2. Initialize all submodules:
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+3. Set up each subproject as needed:
    ```bash
    # For curated-db
    cd curated-db
@@ -34,7 +45,7 @@ This is the root repository for all Nettie applications.
    npm install
    ```
 
-3. Follow individual project READMEs for specific setup instructions and environment variables.
+4. Follow individual project READMEs for specific setup instructions and environment variables.
 
 ## Adding a New Repository
 
