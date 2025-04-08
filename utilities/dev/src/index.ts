@@ -162,7 +162,13 @@ export async function runCLI(): Promise<void> {
         console.log(`  3. Start developing!\n`);
       } catch (error) {
         if (error instanceof Error) {
-          console.error(chalk.red(`Error: ${error.message}`));
+          // Check if error is about repository name already existing
+          if (error.message.includes('already exists')) {
+            console.error(chalk.red.bold(`\n❌ ${error.message}`));
+            console.log(chalk.yellow(`\nPlease try again with a different project name.`));
+          } else {
+            console.error(chalk.red(`Error: ${error.message}`));
+          }
         } else {
           console.error(chalk.red('An unknown error occurred'));
         }

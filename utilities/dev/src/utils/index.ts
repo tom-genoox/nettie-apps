@@ -20,6 +20,18 @@ interface GenerateProjectFilesParams {
   type: ProjectType | string;
 }
 
+interface GitHubErrorResponse {
+  response?: {
+    status?: number;
+    data?: {
+      errors?: Array<{
+        message?: string;
+      }>;
+    };
+  };
+  message?: string;
+}
+
 /**
  * Find the Git repository root directory
  * Starts from the current directory and traverses up until it finds a .git directory
@@ -87,7 +99,15 @@ export async function createGitHubRepository(params: CreateRepoParams): Promise<
         
         console.log(chalk.green(`✅ Created repository in organization: ${org}/${name}`));
         return `${org}/${name}`;
-      } catch (error) {
+      } catch (error: unknown) {
+        // Check for name already exists error
+        const gitHubError = error as GitHubErrorResponse;
+        if (gitHubError.response && gitHubError.response.status === 422 && 
+            gitHubError.response.data && gitHubError.response.data.errors && 
+            gitHubError.response.data.errors.some(e => e.message && e.message.includes('already exists'))) {
+          throw new Error(`Repository name '${name}' already exists in organization ${org}. Please choose a different name.`);
+        }
+        
         console.log(chalk.yellow(`⚠️ Could not create repository in organization: ${org}`));
         console.log(chalk.blue('Creating repository in your personal account instead...'));
       }
@@ -95,15 +115,28 @@ export async function createGitHubRepository(params: CreateRepoParams): Promise<
     
     // If we get here, either no org was specified or creating in the org failed
     // Create in the user's account instead
-    const { data } = await octokit.rest.repos.createForAuthenticatedUser({
-      name,
-      description,
-      auto_init: false,
-      private: false,
-    });
-    
-    console.log(chalk.green(`✅ Created repository in your personal account: ${data.owner.login}/${name}`));
-    return `${data.owner.login}/${name}`;
+    try {
+      const { data } = await octokit.rest.repos.createForAuthenticatedUser({
+        name,
+        description,
+        auto_init: false,
+        private: false,
+      });
+      
+      console.log(chalk.green(`✅ Created repository in your personal account: ${data.owner.login}/${name}`));
+      return `${data.owner.login}/${name}`;
+    } catch (error: unknown) {
+      // Check for name already exists error
+      const gitHubError = error as GitHubErrorResponse;
+      if (gitHubError.response && gitHubError.response.status === 422 && 
+          gitHubError.response.data && gitHubError.response.data.errors && 
+          gitHubError.response.data.errors.some(e => e.message && e.message.includes('already exists'))) {
+        throw new Error(`Repository name '${name}' already exists in your account. Please choose a different name.`);
+      }
+      
+      // Re-throw the original error
+      throw error;
+    }
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to create GitHub repository: ${error.message}`);
