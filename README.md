@@ -19,13 +19,13 @@ This is the root repository for all Nettie applications.
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/genoox/nettie-apps.git
+   git clone https://github.com/tom-genoox/nettie-apps.git
    cd nettie-apps
    ```
    
    Or to clone with all submodules in one command:
    ```bash
-   git clone --recurse-submodules https://github.com/genoox/nettie-apps.git
+   git clone --recurse-submodules https://github.com/tom-genoox/nettie-apps.git
    cd nettie-apps
    ```
 
@@ -54,7 +54,7 @@ This is the root repository for all Nettie applications.
 1. Create your new repository on GitHub or your Git provider
 2. Add it as a submodule to this repository:
    ```bash
-   git submodule add https://github.com/genoox/new-app-name.git
+   git submodule add https://github.com/tom-genoox/new-app-name.git
    git commit -m "Add new-app-name as submodule"
    git push
    ```
