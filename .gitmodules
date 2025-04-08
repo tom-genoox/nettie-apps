@@ -4,3 +4,6 @@
 [submodule "franklin-id"]
 	path = franklin-id
 	url = https://github.com/tom-genoox/franklin-id
+[submodule "panel-app"]
+	path = panel-app
+	url = https://github.com/eyal-elkevity/panel-app.git
