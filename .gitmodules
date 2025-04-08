@@ -10,6 +10,3 @@
 [submodule "apps/kit-validator"]
 	path = apps/kit-validator
 	url = https://github.com/genoox-nettie/kit-validator.git
-[submodule "apps/test-nettie-cli"]
-	path = apps/test-nettie-cli
-	url = https://github.com/tom-genoox/test-nettie-cli.git
