@@ -1,9 +1,9 @@
 [submodule "curated-db"]
-	path = curated-db
+	path = apps/curated-db
 	url = https://github.com/tom-genoox/curated-db
 [submodule "franklin-id"]
-	path = franklin-id
+	path = utilities/frontend/franklin-id
 	url = https://github.com/tom-genoox/franklin-id
 [submodule "panel-app"]
-	path = panel-app
+	path = apps/panel-app
 	url = https://github.com/eyal-elkevity/panel-app.git
