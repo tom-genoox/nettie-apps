@@ -101,19 +101,43 @@ export async function createUtility(config: UtilityConfig): Promise<void> {
         
         // Push the initial commit to GitHub - important for submodule to work
         console.log(chalk.blue(`Pushing initial commit to GitHub repository...`));
+        
+        // Try different branch names for push
+        let pushSuccess = false;
+        
+        // First try main branch
         try {
-          await git.push('origin', 'main', ['--set-upstream']);
-        } catch (pushError) {
-          // Try with master branch if main failed
+          await git.push('origin', 'main', ['--set-upstream', '--force']);
+          pushSuccess = true;
+          console.log(chalk.green(`✅ Successfully pushed to 'main' branch`));
+        } catch (mainError) {
+          console.log(chalk.yellow(`Could not push to 'main' branch, trying 'master'...`));
+          
+          // Try master branch
           try {
-            await git.push('origin', 'master', ['--set-upstream']);
+            await git.push('origin', 'master', ['--set-upstream', '--force']);
+            pushSuccess = true;
+            console.log(chalk.green(`✅ Successfully pushed to 'master' branch`));
           } catch (masterError) {
-            console.log(chalk.yellow(`⚠️ Could not push to remote repository. You may need to push manually.`));
-            console.log(chalk.yellow(`   Run: cd ${utilityPath} && git push -u origin main`));
+            // Try to determine current branch and push that
+            try {
+              const branchSummary = await git.branch();
+              const currentBranch = branchSummary.current;
+              console.log(chalk.yellow(`Trying to push current branch: ${currentBranch}...`));
+              
+              await git.push('origin', currentBranch, ['--set-upstream', '--force']);
+              pushSuccess = true;
+              console.log(chalk.green(`✅ Successfully pushed to '${currentBranch}' branch`));
+            } catch (currentError) {
+              console.log(chalk.red(`❌ Could not push to remote repository. You may need to push manually.`));
+              console.log(chalk.yellow(`   Run: cd ${utilityPath} && git push -u origin main`));
+            }
           }
         }
         
-        console.log(chalk.green(`✅ Git repository initialized with remote and initial commit pushed`));
+        if (pushSuccess) {
+          console.log(chalk.green(`✅ Git repository initialized with remote and initial commit pushed`));
+        }
       } catch (error) {
         console.log(chalk.red(`❌ Error setting up remote: ${error instanceof Error ? error.message : 'Unknown error'}`));
         console.log(chalk.yellow(`You may need to manually set the remote with:`));
@@ -130,10 +154,11 @@ export async function createUtility(config: UtilityConfig): Promise<void> {
         // Verify this is a git repository (this will throw if not)
         await mainGit.revparse(['--git-dir']);
         
-        // Make sure the push has been processed by GitHub - add a small delay
+        // Make sure the push has been processed by GitHub - increase the delay
         if (createGithubRepo) {
           console.log(chalk.blue(`Waiting for GitHub to process the push before adding submodule...`));
-          await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+          // Use a longer delay (5 seconds) to ensure GitHub has time to process the push
+          await new Promise(resolve => setTimeout(resolve, 5000));
         }
         
         // Check if the submodule path already exists to avoid errors

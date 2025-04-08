@@ -94,7 +94,7 @@ export async function createGitHubRepository(params: CreateRepoParams): Promise<
           name,
           description,
           auto_init: false,
-          private: false,
+          private: true,
         });
         
         console.log(chalk.green(`✅ Created repository in organization: ${org}/${name}`));
@@ -120,7 +120,7 @@ export async function createGitHubRepository(params: CreateRepoParams): Promise<
         name,
         description,
         auto_init: false,
-        private: false,
+        private: true,
       });
       
       console.log(chalk.green(`✅ Created repository in your personal account: ${data.owner.login}/${name}`));
@@ -229,6 +229,10 @@ function getAppTemplateFiles(): Record<string, string> {
 
 {{description}}
 
+## Overview
+
+This application is part of the Nettie Apps ecosystem.
+
 ## Getting Started
 
 ### Prerequisites
@@ -251,6 +255,21 @@ npm run dev
 # or
 yarn dev
 \`\`\`
+
+## Project Structure
+
+\`\`\`
+src/           # Source code
+├─ components/ # React components
+├─ pages/      # Application pages/routes
+├─ utils/      # Utility functions
+└─ types/      # TypeScript type definitions
+public/        # Static files
+\`\`\`
+
+## Configuration
+
+[Describe any environment variables or configuration options here]
 
 ## License
 
@@ -318,6 +337,10 @@ function getUtilityTemplateFiles(): Record<string, string> {
 
 {{description}}
 
+## Overview
+
+This utility is part of the Nettie Apps ecosystem.
+
 ## Installation
 
 \`\`\`bash
@@ -331,14 +354,35 @@ yarn add {{name}}
 \`\`\`typescript
 import { someFunction } from '{{name}}';
 
-// Use the utility here
+// Example code
+const result = someFunction();
+console.log(result);
 \`\`\`
 
-## API
+## API Reference
 
-### someFunction()
+### \`someFunction()\`
 
 Description of what the function does...
+
+**Parameters:**
+- None
+
+**Returns:**
+- \`string\` - A greeting message
+
+## Development
+
+\`\`\`bash
+# Install dependencies
+npm install
+
+# Build the package
+npm run build
+
+# Run tests
+npm test
+\`\`\`
 
 ## License
 
