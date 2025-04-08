@@ -1,0 +1,53 @@
+# === SYSTEM FILES ===
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# === LOG FILES ===
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === NODE MODULES / DEPENDENCIES ===
+**/node_modules/
+**/bower_components/
+
+# === PYTHON VIRTUAL ENVIRONMENTS ===
+**/venv/
+**/.venv/
+**/__pycache__/
+
+# === COMPILED LANGUAGES ===
+**/dist/
+**/build/
+**/out/
+**/target/
+**/*.class
+**/*.o
+**/*.pyc
+
+# === EDITOR CONFIG ===
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# === ENVIRONMENT FILES ===
+.env
+.env.*
+*.env.local
+*.env.development
+*.env.test
+*.env.production
+
+# === GIT MODULES & WORKTREE FILES ===
+*.swp
+*.lock
+*.bak
+
+# === OS-SPECIFIC ===
+*.orig
+*~

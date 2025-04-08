@@ -1,0 +1,6 @@
+[submodule "curated-db"]
+	path = curated-db
+	url = https://github.com/tom-genoox/curated-db
+[submodule "franklin-id"]
+	path = franklin-id
+	url = https://github.com/tom-genoox/franklin-id
