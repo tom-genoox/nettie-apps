@@ -9,6 +9,7 @@ A CLI tool to generate new Nettie standalone apps and utilities, create GitHub r
 - Optionally creates GitHub repositories for new projects
 - Registers new projects as Git submodules in the main repository
 - Generates project templates with common files and configurations
+- Smart GitHub authentication with browser support and token saving
 
 ## Installation
 
@@ -39,7 +40,6 @@ This will prompt you for:
 3. Project description
 4. GitHub repository name (usually organization/repo-name)
 5. Whether to create a GitHub repository automatically
-6. GitHub token (if creating a repository)
 
 The tool will:
 
@@ -48,6 +48,25 @@ The tool will:
 3. Initialize a Git repository 
 4. Create a GitHub repository (if requested)
 5. Add the project as a submodule to the main repository
+
+### GitHub Authentication
+
+The tool provides several convenient ways to authenticate with GitHub:
+
+1. **Environment Variables**: Set `GITHUB_TOKEN` or `GH_TOKEN` in your environment
+2. **Saved Tokens**: The tool can securely save tokens for future use
+3. **Browser Authentication**: Opens GitHub token creation page in your browser
+4. **Manual Entry**: You can still manually paste a token if preferred
+
+When the tool needs a GitHub token, it will:
+
+1. Check for a token in environment variables
+2. Look for a previously saved token
+3. If no token is found, or if you choose not to use a saved token, it will offer:
+   - Opening the GitHub token creation page in your browser
+   - Manual token entry
+
+After successful authentication, you'll have the option to save the token securely for future use.
 
 ## Development
 

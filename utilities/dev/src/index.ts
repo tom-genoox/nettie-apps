@@ -7,6 +7,7 @@ import inquirer from 'inquirer';
 import { createApp } from './commands/createApp.ts';
 import { createUtility } from './commands/createUtility.ts';
 import type { ProjectType, ProjectAnswers } from './types/index.ts';
+import { handleGitHubAuth } from './utils/githubAuth.ts';
 
 /**
  * Display the welcome banner
@@ -101,21 +102,17 @@ export async function runCLI(): Promise<void> {
           message: 'Do you want to create a GitHub repository automatically?',
           default: true,
         },
-        {
-          type: 'password',
-          name: 'githubToken',
-          message: 'Enter your GitHub token (with repo scope):',
-          when: (answers: { createGithubRepo: boolean }) => answers.createGithubRepo,
-          validate: (input: string) => {
-            if (!input.trim()) {
-              return 'GitHub token cannot be empty';
-            }
-            return true;
-          },
-        },
       ]);
 
       try {
+        // Handle GitHub authentication if needed
+        let githubToken: string | undefined;
+        
+        if (answers.createGithubRepo) {
+          // Use our improved auth flow
+          githubToken = await handleGitHubAuth();
+        }
+        
         switch (answers.projectType) {
           case 'app':
             await createApp({
@@ -123,7 +120,7 @@ export async function runCLI(): Promise<void> {
               description: answers.description,
               githubRepo: answers.githubRepo,
               createGithubRepo: answers.createGithubRepo,
-              githubToken: answers.githubToken,
+              githubToken,
             });
             break;
           case 'frontend':
@@ -133,7 +130,7 @@ export async function runCLI(): Promise<void> {
               description: answers.description,
               githubRepo: answers.githubRepo,
               createGithubRepo: answers.createGithubRepo,
-              githubToken: answers.githubToken,
+              githubToken,
               type: answers.projectType as ProjectType,
             });
             break;
