@@ -7,6 +7,7 @@ A CLI tool to generate new Nettie standalone apps and utilities, create GitHub r
 - Creates new standalone applications in the `apps/` directory
 - Creates new utilities in the `utilities/frontend/` or `utilities/backend/` directories
 - Optionally creates GitHub repositories for new projects (using the genoox-nettie organization)
+- Automatically pushes the initial commit to GitHub repositories
 - Registers new projects as Git submodules in the main repository
 - Generates project templates with common files and configurations
 - Smart GitHub authentication with browser support and token saving
@@ -46,11 +47,16 @@ The tool will:
 2. Generate project files from templates
 3. Initialize a Git repository 
 4. Create a GitHub repository (if requested)
-5. Try to add the project as a submodule to the main repository
+5. Push the initial commit to GitHub
+6. Try to add the project as a submodule to the main repository
 
 ### GitHub Repository Creation
 
 By default, all repositories are created in the `genoox-nettie` organization. If you don't have permission to create repositories in this organization, the tool will fall back to creating them in your personal GitHub account instead.
+
+### Pushing Initial Commit
+
+The tool will attempt to push the initial commit to the GitHub repository using either the `main` or `master` branch. This ensures that when the repository is added as a submodule, it has a valid commit to reference.
 
 ### Submodule Handling
 
@@ -58,6 +64,7 @@ The tool attempts to add the new project as a Git submodule to the main reposito
 
 1. You must run the tool from within a Git repository
 2. The detected Git repository must be the same as your nettie-apps repository
+3. The GitHub repository must have at least one commit (which is now ensured by the automatic push)
 
 If the tool cannot add the submodule automatically (e.g., if it can't find a valid Git repository), it will provide you with the exact commands needed to manually add the submodule later.
 

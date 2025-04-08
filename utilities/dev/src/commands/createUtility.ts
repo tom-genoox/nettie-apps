@@ -88,7 +88,22 @@ export async function createUtility(config: UtilityConfig): Promise<void> {
     
     if (createGithubRepo) {
       await git.addRemote('origin', `https://github.com/${actualGithubRepo}.git`);
-      console.log(chalk.green(`✅ Git repository initialized with remote`));
+      
+      // Push the initial commit to GitHub - important for submodule to work
+      console.log(chalk.blue(`Pushing initial commit to GitHub repository...`));
+      try {
+        await git.push('origin', 'main', ['--set-upstream']);
+      } catch (pushError) {
+        // Try with master branch if main failed
+        try {
+          await git.push('origin', 'master', ['--set-upstream']);
+        } catch (masterError) {
+          console.log(chalk.yellow(`⚠️ Could not push to remote repository. You may need to push manually.`));
+          console.log(chalk.yellow(`   Run: cd ${utilityPath} && git push -u origin main`));
+        }
+      }
+      
+      console.log(chalk.green(`✅ Git repository initialized with remote and initial commit pushed`));
     } else {
       console.log(chalk.green(`✅ Git repository initialized locally`));
     }
