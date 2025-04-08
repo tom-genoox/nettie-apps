@@ -10,6 +10,3 @@
 [submodule "apps/kit-validator"]
 	path = apps/kit-validator
 	url = https://github.com/genoox-nettie/kit-validator.git
-[submodule "apps/showing-off"]
-	path = apps/showing-off
-	url = https://github.com/genoox-nettie/showing-off.git
