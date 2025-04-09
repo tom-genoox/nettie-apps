@@ -22,3 +22,6 @@
 [submodule "apps/mobile-assay-config"]
 	path = apps/mobile-assay-config
 	url = https://github.com/genoox-nettie/mobile-assay-config.git
+[submodule "utilities/backend/github-mcp-server"]
+	path = utilities/backend/github-mcp-server
+	url = https://github.com/genoox-nettie/github-mcp-server.git
