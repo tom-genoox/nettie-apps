@@ -13,3 +13,6 @@
 [submodule "apps/test-nettie-cli"]
 	path = apps/test-nettie-cli
 	url = https://github.com/genoox-nettie/test-nettie-cli.git
+[submodule "apps/gene-pathway-manage"]
+	path = apps/gene-pathway-manage
+	url = https://github.com/genoox-nettie/gene-pathway-manage.git
