@@ -16,3 +16,6 @@
 [submodule "apps/gene-pathway-manage"]
 	path = apps/gene-pathway-manage
 	url = https://github.com/genoox-nettie/gene-pathway-manage.git
+[submodule "apps/franklin-id"]
+	path = apps/franklin-id
+	url = https://github.com/genoox-nettie/franklin-id.git
