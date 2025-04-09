@@ -1,1 +1,111 @@
- 
+---
+description: 
+globs: 
+alwaysApply: false
+---
+ # Nettie Apps - General Rules and Conventions
+
+This document outlines the general rules, conventions, and guidelines for the Nettie Apps project structure. These rules apply to both human developers and AI agents working with this codebase.
+
+## Project Structure
+
+```
+nettie-apps/
+├── apps/                  # All standalone applications
+│   ├── curated-db/        # Curated database application
+│   ├── panel-app/         # Panel application
+│   └── [future-apps]/     # Future applications should be added here
+│
+└── utilities/             # Utility services and libraries
+    ├── frontend/          # Frontend utilities
+    │   └── franklin-id/   # Franklin ID authentication service
+    └── backend/           # Backend utilities (future)
+```
+
+## General Rules
+
+### Repository Organization
+
+1. **Application Code Location**
+   - All standalone applications must be placed in the `apps/` directory
+   - Each application should be a separate Git submodule
+
+2. **Utility Code Location**
+   - All utility code must be placed in the `utilities/` directory
+   - Frontend utilities go in `utilities/frontend/`
+   - Backend utilities go in `utilities/backend/`
+   - Each utility should be a separate Git submodule
+
+3. **Directory Naming Conventions**
+   - Use kebab-case for all directory names (e.g., `panel-app`, not `panel_app` or `PanelApp`)
+   - Names should be descriptive and reflect the purpose of the code
+
+### Submodule Management
+
+1. **Adding New Submodules**
+   - Always add submodules to the appropriate directory based on their purpose
+   - Use HTTPS URLs for submodule references for better compatibility
+   - Commit submodule additions with descriptive commit messages
+
+2. **Updating Submodules**
+   - Update submodules using `git submodule update --remote [submodule-path]`
+   - Always document significant submodule updates in commit messages
+
+3. **Removing Submodules**
+   - When removing a submodule, use proper Git commands to avoid reference issues
+   - Update documentation to reflect the removal
+
+### Documentation Requirements
+
+1. **README Files**
+   - Every submodule must have its own README.md file
+   - READMEs should include setup instructions, prerequisites, and usage examples
+   - Document any environment variables or configuration required
+
+2. **Code Documentation**
+   - Use JSDoc or similar documentation style for functions and classes
+   - Document complex algorithms and business logic
+   - Keep documentation up-to-date with code changes
+
+### Code Quality Standards
+
+1. **Linting and Formatting**
+   - Each project should use consistent linting and code formatting tools
+   - Enforce code style through automated tools when possible
+
+2. **Testing**
+   - All applications should have appropriate test coverage
+   - Tests should be organized in a consistent structure
+
+3. **Dependencies**
+   - Minimize external dependencies when possible
+   - Document required dependencies in package.json with appropriate version constraints
+   - Regularly update dependencies to address security vulnerabilities
+
+## Guidelines for AI Agents
+
+When AI agents are working with this codebase, they should:
+
+1. **Respect Project Structure**
+   - Always place new code in the appropriate directories based on the rules above
+   - Do not modify the established directory structure without explicit approval
+
+2. **Follow Existing Conventions**
+   - Analyze existing code to understand conventions before making changes
+   - Maintain consistent coding style with the rest of the project
+
+3. **Documentation Generation**
+   - Generate appropriate documentation for any new code or changes
+   - Update existing documentation when modifying code behavior
+
+4. **Providing Context**
+   - When suggesting changes, provide context about how they align with project structure
+   - Reference these guidelines when explaining architectural decisions
+
+## Continuous Improvement
+
+These guidelines should evolve with the project. If you find areas for improvement in these rules:
+
+1. Propose changes with clear rationale
+2. Discuss with the team before implementing structural changes
+3. Update this document when new conventions are adopted
