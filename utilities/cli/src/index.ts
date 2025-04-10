@@ -6,8 +6,14 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { createApp } from './commands/createApp.ts';
 import { createUtility } from './commands/createUtility.ts';
+import { updateCLI } from './commands/update.ts';
 import type { ProjectType, ProjectAnswers } from './types/index.ts';
 import { handleGitHubAuth, getGitHubUsername } from './utils/githubAuth.ts';
+import { forkRepo } from './commands/forkRepo.ts';
+import { listSubmodules, updateSubmodules, removeSubmodule } from './commands/submoduleManager.ts';
+import { generateCompletion } from './commands/completion.ts';
+import { cloneRepo } from './commands/clone.ts';
+import { doctorCommand } from './commands/doctor.js';
 
 /**
  * Display the welcome banner
@@ -34,13 +40,13 @@ export async function runCLI(): Promise<void> {
   const program = new Command();
 
   program
-    .name('nettie-create')
-    .description('CLI tool to create new Nettie apps and utilities')
+    .name('nettie')
+    .description('CLI tool for managing Nettie apps and utilities')
     .version('0.1.0');
 
   program
-    .command('init')
-    .description('Initialize a new Nettie project')
+    .command('create')
+    .description('Create a new Nettie app or utility')
     .action(async () => {
       // First ask about GitHub repository creation to get token early 
       // so we can use the username in defaults
@@ -176,6 +182,73 @@ export async function runCLI(): Promise<void> {
       }
     });
 
+  program
+    .command('update')
+    .description('Update Nettie CLI to the latest version')
+    .action(async () => {
+      await updateCLI();
+    });
+
+  program
+    .command('fork')
+    .description('Fork a GitHub repository to your organization and add it as a submodule')
+    .option('-u, --url <url>', 'GitHub repository URL')
+    .option('-t, --type <type>', 'Repository type (app, frontend, backend)')
+    .action(async (options) => {
+      await forkRepo({
+        repoUrl: options.url,
+        repoType: options.type,
+      });
+    });
+
+  program
+    .command('clone')
+    .description('Clone a repository and add it as a submodule')
+    .argument('<url>', 'GitHub repository URL')
+    .action(async (url) => {
+      await cloneRepo({ url });
+    });
+
+  program
+    .command('completion')
+    .description('Generate shell completion script')
+    .action(async () => {
+      await generateCompletion();
+    });
+
+  program
+    .command('doctor')
+    .description('Check if all required tools are installed and properly configured')
+    .action(doctorCommand);
+
+  // Submodule command with subcommands
+  const submoduleCommand = program
+    .command('submodule')
+    .description('Manage Git submodules in the repository');
+
+  submoduleCommand
+    .command('list')
+    .description('List all submodules in the repository')
+    .action(() => {
+      listSubmodules();
+    });
+
+  submoduleCommand
+    .command('update')
+    .description('Update all submodules or a specific submodule')
+    .argument('[path]', 'Path to a specific submodule to update')
+    .action((path) => {
+      updateSubmodules(path);
+    });
+
+  submoduleCommand
+    .command('remove')
+    .description('Remove a submodule from the repository')
+    .argument('[path]', 'Path to the submodule to remove')
+    .action(async (path) => {
+      await removeSubmodule(path);
+    });
+
   // Parse arguments
   program.parse();
 
@@ -183,4 +256,14 @@ export async function runCLI(): Promise<void> {
   if (process.argv.length <= 2) {
     program.help();
   }
-} 
+}
+
+// Run the CLI if this is the main module
+if (import.meta.main) {
+  runCLI().catch((error) => {
+    console.error(chalk.red(`\nError: ${error.message}`));
+    process.exit(1);
+  });
+}
+
+export * from './cli.ts'; 

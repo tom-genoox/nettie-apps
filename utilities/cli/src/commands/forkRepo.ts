@@ -6,6 +6,7 @@ import fs from 'fs';
 import { Octokit } from 'octokit';
 import type { CloneOptions } from '../types/index.ts';
 import { handleGitHubAuth } from '../utils/githubAuth.ts';
+import { getProjectPath } from '../utils/index.ts';
 
 /**
  * Fork and clone a repository from GitHub and add it as a submodule
@@ -39,7 +40,7 @@ export async function forkRepo(options?: Partial<CloneOptions>): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 5000));
     
     // Calculate target directory
-    const targetDir = getTargetDirectory(repoType, repo);
+    const targetDir = await getTargetDirectory(repoType, repo);
     
     // Clone and add as submodule
     console.log(chalk.blue(`\nCloning forked repository ${chalk.bold(forkedRepoInfo.fullName)} as a ${chalk.bold(repoType)}...`));
@@ -170,16 +171,11 @@ function getRepoNameFromUrl(url: string): string {
 /**
  * Get the target directory based on the repository type
  */
-function getTargetDirectory(repoType: string, repoName: string): string {
-  switch (repoType) {
-    case 'app':
-      return `apps/${repoName}`;
-    case 'frontend':
-      return `utilities/frontend/${repoName}`;
-    case 'backend':
-      return `utilities/backend/${repoName}`;
-    default:
-      throw new Error(`Unknown repository type: ${repoType}`);
+async function getTargetDirectory(repoType: string, repoName: string): Promise<string> {
+  try {
+    return await getProjectPath(repoType, repoName);
+  } catch (error) {
+    throw new Error(`Failed to determine target directory: ${error instanceof Error ? error.message : 'unknown error'}`);
   }
 }
 

@@ -10,6 +10,10 @@ A collection of CLI tools to improve the developer experience for Nettie apps de
   - Optionally creates GitHub repositories for new projects (using the genoox-nettie organization)
   - Automatically pushes the initial commit to GitHub repositories
   - Registers new projects as Git submodules in the main repository
+- **nettie update**: Update the CLI tool to the latest version
+  - Pulls the latest changes from the repository
+  - Reinstalls dependencies
+  - Relinks the CLI commands
 - **nettie setup**: (Coming soon) Setup your development environment with common tools and configurations
 
 ## Installation
@@ -25,6 +29,28 @@ bun link
 ```
 
 This will make the CLI tool available globally on your system as `nettie` and `nettie-create`.
+
+### Shell Completions
+
+#### Zsh
+
+The CLI includes Zsh completions for a better command-line experience. The completions are automatically installed during `bun install` to `~/.zsh/completion/_nettie`.
+
+To enable the completions, add the following to your `~/.zshrc`:
+
+```bash
+# Add custom completion scripts
+fpath=(~/.zsh/completion $fpath)
+
+# Initialize completions
+autoload -U compinit
+compinit
+```
+
+After adding these lines:
+1. Restart your shell or run `source ~/.zshrc`
+2. Try typing `nettie` and press TAB to see the available commands
+3. After typing `nettie create` and pressing TAB, you'll see the available project types
 
 ## Usage
 
@@ -67,6 +93,21 @@ The tool will:
 4. Create a GitHub repository (if requested)
 5. Push the initial commit to GitHub
 6. Try to add the project as a submodule to the main repository
+
+### Update Command
+
+To update the CLI to the latest version:
+
+```bash
+nettie update
+```
+
+This will:
+1. Pull the latest changes from the repository
+2. Reinstall dependencies
+3. Relink the CLI commands
+
+Note: This command must be run from within the nettie-apps repository.
 
 ### GitHub Repository Creation
 

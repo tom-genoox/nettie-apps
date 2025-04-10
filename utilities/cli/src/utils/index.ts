@@ -1,9 +1,11 @@
 import { Octokit } from 'octokit';
-import fs from 'fs/promises';
+import fs from 'fs';
+import fsPromises from 'fs/promises';
 import path from 'path';
 import type { ProjectType } from '../types/index.ts';
 import chalk from 'chalk';
 import { simpleGit } from 'simple-git';
+import { execSync } from 'child_process';
 
 interface CreateRepoParams {
   name: string;
@@ -33,42 +35,70 @@ interface GitHubErrorResponse {
 }
 
 /**
- * Find the Git repository root directory
- * Starts from the current directory and traverses up until it finds a .git directory
+ * Find the root directory of the Git repository, handling submodules
+ * @returns The absolute path to the main Git repository root
  */
-export async function findGitRoot(): Promise<string> {
-  // Start from the current directory
-  let currentDir = process.cwd();
-  const git = simpleGit();
-  
+export function findGitRoot(): string {
   try {
-    // This will return the root directory of the git repository
-    const gitDir = await git.revparse(['--show-toplevel']);
-    if (gitDir) {
-      return gitDir;
-    }
-  } catch (error) {
-    // If we get an error, try the manual approach
-  }
-  
-  // Manual approach by traversing directories
-  while (currentDir !== path.parse(currentDir).root) {
+    // First try to get the immediate git root
+    const currentGitRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf-8' }).trim();
+    
+    // Check if we're in a submodule by looking for a .git file
+    const gitPath = path.join(currentGitRoot, '.git');
     try {
-      const gitDir = path.join(currentDir, '.git');
-      const stats = await fs.stat(gitDir);
+      const gitFileContent = fs.readFileSync(gitPath, 'utf-8').trim();
+      const gitdirMatch = gitFileContent.match(/^gitdir:\s*(.+)$/);
       
-      if (stats.isDirectory()) {
-        return currentDir;
+      if (gitdirMatch) {
+        // We're in a submodule, the gitdir path will be relative to the submodule root
+        // and will point to .git/modules/[submodule-path] in the parent repository
+        const relativeGitDir = gitdirMatch[1];
+        const absoluteGitDir = path.resolve(currentGitRoot, relativeGitDir);
+        
+        // The parent repository root will be 3 levels up from the modules directory
+        // e.g., /path/to/parent/.git/modules/submodule -> /path/to/parent
+        const parentRoot = path.resolve(absoluteGitDir, '..', '..', '..');
+        
+        // Verify this is actually the nettie-apps repository by checking for the CLI directory
+        const cliPath = path.join(parentRoot, 'utilities', 'cli');
+        if (fs.existsSync(cliPath)) {
+          return parentRoot;
+        }
       }
     } catch (error) {
-      // .git directory doesn't exist at this level
+      // If reading .git fails, we're probably in a regular git directory, not a submodule
     }
     
-    // Move up one level
-    currentDir = path.dirname(currentDir);
+    // If we're not in a submodule or couldn't find the parent, verify this is the nettie-apps repository
+    const cliPath = path.join(currentGitRoot, 'utilities', 'cli');
+    if (fs.existsSync(cliPath)) {
+      return currentGitRoot;
+    }
+    
+    throw new Error('not in the nettie-apps repository');
+  } catch (error) {
+    throw new Error('not in a git repository');
   }
+}
+
+/**
+ * Ensures a path is relative to the repository root
+ * @param type The type of project ('app', 'frontend', or 'backend')
+ * @param name The name of the project
+ * @returns The full path relative to the repository root
+ */
+export async function getProjectPath(type: ProjectType | string, name: string): Promise<string> {
+  const root = findGitRoot();
   
-  throw new Error('Not in a Git repository');
+  switch (type) {
+    case 'app':
+      return path.join(root, 'apps', name);
+    case 'frontend':
+    case 'backend':
+      return path.join(root, 'utilities', type, name);
+    default:
+      throw new Error(`Unknown project type: ${type}`);
+  }
 }
 
 /**
@@ -154,15 +184,15 @@ export async function generateProjectFiles(params: GenerateProjectFilesParams): 
   try {
     // Check if template directory exists
     try {
-      await fs.access(templateDir);
+      await fsPromises.access(templateDir);
     } catch (error) {
       // Create a basic template structure if not exists
-      await fs.mkdir(templateDir, { recursive: true });
+      await fsPromises.mkdir(templateDir, { recursive: true });
       await createDefaultTemplates(templateDir, type);
     }
 
     // Read template directory
-    const files = await fs.readdir(templateDir, { withFileTypes: true });
+    const files = await fsPromises.readdir(templateDir, { withFileTypes: true });
     
     // Process each template file
     for (const file of files) {
@@ -171,7 +201,7 @@ export async function generateProjectFiles(params: GenerateProjectFilesParams): 
       
       if (file.isDirectory()) {
         // Create directory and process recursively
-        await fs.mkdir(destPath, { recursive: true });
+        await fsPromises.mkdir(destPath, { recursive: true });
         await generateProjectFiles({
           name,
           description,
@@ -181,7 +211,7 @@ export async function generateProjectFiles(params: GenerateProjectFilesParams): 
         });
       } else {
         // Read template file
-        let content = await fs.readFile(srcPath, 'utf8');
+        let content = await fsPromises.readFile(srcPath, 'utf8');
         
         // Replace template variables
         content = content
@@ -190,7 +220,7 @@ export async function generateProjectFiles(params: GenerateProjectFilesParams): 
           .replace(/\{\{type\}\}/g, type);
           
         // Write file to destination
-        await fs.writeFile(destPath, content);
+        await fsPromises.writeFile(destPath, content);
       }
     }
   } catch (error) {
@@ -213,10 +243,10 @@ async function createDefaultTemplates(templateDir: string, type: ProjectType | s
     const dirPath = path.dirname(filePath);
     
     // Create directories if needed
-    await fs.mkdir(dirPath, { recursive: true });
+    await fsPromises.mkdir(dirPath, { recursive: true });
     
     // Write file
-    await fs.writeFile(filePath, content);
+    await fsPromises.writeFile(filePath, content);
   }
 }
 

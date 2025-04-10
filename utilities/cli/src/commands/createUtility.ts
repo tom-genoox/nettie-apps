@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import { simpleGit } from 'simple-git';
 import { Octokit } from 'octokit';
 import type { UtilityConfig } from '../types/index.ts';
-import { createGitHubRepository, generateProjectFiles, findGitRoot } from '../utils/index.ts';
+import { createGitHubRepository, generateProjectFiles, findGitRoot, getProjectPath } from '../utils/index.ts';
 import { getGitHubUsername } from '../utils/githubAuth.ts';
 
 /**
@@ -15,19 +15,11 @@ export async function createUtility(config: UtilityConfig): Promise<void> {
   
   console.log(chalk.blue.bold(`Creating new ${type} utility: ${name}`));
 
-  // Find the Git repository root
-  let workspaceRoot: string;
-  try {
-    workspaceRoot = await findGitRoot();
-    console.log(chalk.green(`✅ Found Git repository root at: ${workspaceRoot}`));
-  } catch (error) {
-    console.log(chalk.yellow('⚠️ Could not find Git repository root. Using current directory structure.'));
-    // Fallback to the old method
-    workspaceRoot = path.resolve(process.cwd(), '../../..');
-    console.log(chalk.yellow(`Using fallback workspace root: ${workspaceRoot}`));
-  }
+  // Get the workspace root and utility path
+  const workspaceRoot = await findGitRoot();
+  const utilityPath = await getProjectPath(type, name);
   
-  const utilityPath = path.join(workspaceRoot, 'utilities', type, name);
+  console.log(chalk.green(`✅ Found Git repository root at: ${workspaceRoot}`));
   
   // Variable to store the actual GitHub repository path
   let actualGithubRepo = githubRepo;
@@ -104,44 +96,25 @@ export async function createUtility(config: UtilityConfig): Promise<void> {
         
         // Try different branch names for push
         let pushSuccess = false;
+        const branchNames = ['main', 'master'];
         
-        // First try main branch
-        try {
-          await git.push('origin', 'main', ['--set-upstream', '--force']);
-          pushSuccess = true;
-          console.log(chalk.green(`✅ Successfully pushed to 'main' branch`));
-        } catch (mainError) {
-          console.log(chalk.yellow(`Could not push to 'main' branch, trying 'master'...`));
-          
-          // Try master branch
+        for (const branch of branchNames) {
           try {
-            await git.push('origin', 'master', ['--set-upstream', '--force']);
+            await git.push('origin', branch);
             pushSuccess = true;
-            console.log(chalk.green(`✅ Successfully pushed to 'master' branch`));
-          } catch (masterError) {
-            // Try to determine current branch and push that
-            try {
-              const branchSummary = await git.branch();
-              const currentBranch = branchSummary.current;
-              console.log(chalk.yellow(`Trying to push current branch: ${currentBranch}...`));
-              
-              await git.push('origin', currentBranch, ['--set-upstream', '--force']);
-              pushSuccess = true;
-              console.log(chalk.green(`✅ Successfully pushed to '${currentBranch}' branch`));
-            } catch (currentError) {
-              console.log(chalk.red(`❌ Could not push to remote repository. You may need to push manually.`));
-              console.log(chalk.yellow(`   Run: cd ${utilityPath} && git push -u origin main`));
-            }
+            break;
+          } catch (error) {
+            // Try next branch name
           }
         }
         
-        if (pushSuccess) {
-          console.log(chalk.green(`✅ Git repository initialized with remote and initial commit pushed`));
+        if (!pushSuccess) {
+          console.log(chalk.yellow(`⚠️ Failed to push to GitHub. You may need to push manually later.`));
+        } else {
+          console.log(chalk.green(`✅ Initial commit pushed to GitHub`));
         }
       } catch (error) {
-        console.log(chalk.red(`❌ Error setting up remote: ${error instanceof Error ? error.message : 'Unknown error'}`));
-        console.log(chalk.yellow(`You may need to manually set the remote with:`));
-        console.log(chalk.yellow(`   cd ${utilityPath} && git remote add origin https://github.com/${actualGithubRepo}.git`));
+        console.log(chalk.yellow(`⚠️ Failed to set up GitHub remote: ${error instanceof Error ? error.message : 'unknown error'}`));
       }
       
       // Add as submodule to the main repository
@@ -155,11 +128,9 @@ export async function createUtility(config: UtilityConfig): Promise<void> {
         await mainGit.revparse(['--git-dir']);
         
         // Make sure the push has been processed by GitHub - increase the delay
-        if (createGithubRepo) {
-          console.log(chalk.blue(`Waiting for GitHub to process the push before adding submodule...`));
-          // Use a longer delay (5 seconds) to ensure GitHub has time to process the push
-          await new Promise(resolve => setTimeout(resolve, 5000));
-        }
+        console.log(chalk.blue(`Waiting for GitHub to process the push before adding submodule...`));
+        // Use a longer delay (5 seconds) to ensure GitHub has time to process the push
+        await new Promise(resolve => setTimeout(resolve, 5000));
         
         // Check if the submodule path already exists to avoid errors
         const submodulePath = path.join(workspaceRoot, 'utilities', type, name);
@@ -178,58 +149,45 @@ export async function createUtility(config: UtilityConfig): Promise<void> {
           // Directory doesn't exist, which is good for adding a submodule
         }
         
-        // Add the submodule
         try {
-          console.log(chalk.blue(`Running: git submodule add https://github.com/${actualGithubRepo}.git utilities/${type}/${name}`));
+          // Add the submodule
           await mainGit.submoduleAdd(`https://github.com/${actualGithubRepo}.git`, `utilities/${type}/${name}`);
-          await mainGit.add(`.gitmodules`);
-          await mainGit.commit(`Add ${name} as a submodule`);
-          
-          console.log(chalk.green(`✅ Added as submodule to the main repository`));
+          console.log(chalk.green(`✅ Added as submodule successfully`));
         } catch (submoduleError) {
-          console.error(chalk.red(`❌ Failed to add submodule: ${submoduleError instanceof Error ? submoduleError.message : 'Unknown error'}`));
-          console.log(chalk.yellow(`💡 Attempting alternative method to add submodule...`));
+          console.log(chalk.red(`❌ Failed to add submodule: ${submoduleError instanceof Error ? submoduleError.message : 'unknown error'}`));
           
+          // Try alternative method
+          console.log(chalk.blue(`💡 Attempting alternative method to add submodule...`));
           try {
-            // Use command line git directly as an alternative method
-            const { execSync } = require('child_process');
-            
-            // Change to the workspace root
-            process.chdir(workspaceRoot);
-            
-            // Remove the directory if it exists
-            try {
-              await fs.rm(path.join(workspaceRoot, 'utilities', type, name), { recursive: true, force: true });
-            } catch (rmError) {
-              // Ignore errors during removal
-            }
-            
-            // Run git submodule add command directly
-            execSync(`git submodule add https://github.com/${actualGithubRepo}.git utilities/${type}/${name}`, { stdio: 'inherit' });
-            execSync(`git add .gitmodules`, { stdio: 'inherit' });
-            execSync(`git commit -m "Add ${name} as a submodule"`, { stdio: 'inherit' });
-            
-            console.log(chalk.green(`✅ Added as submodule to the main repository using alternative method`));
+            await mainGit.raw(['submodule', 'add', `https://github.com/${actualGithubRepo}.git`, `utilities/${type}/${name}`]);
+            console.log(chalk.green(`✅ Added as submodule successfully using alternative method`));
           } catch (altError) {
-            console.error(chalk.red(`❌ Alternative method also failed: ${altError instanceof Error ? altError.message : 'Unknown error'}`));
-            console.log(chalk.yellow(`💡 The project has been created but not added as a submodule.`));
-            console.log(chalk.yellow(`💡 To add it manually, run the following commands from your workspace root:`));
+            console.log(chalk.red(`❌ Alternative method also failed: ${altError instanceof Error ? altError.message : 'unknown error'}`));
+            console.log(chalk.blue(`💡 The project has been created but not added as a submodule.`));
+            console.log(chalk.blue(`💡 To add it manually, run the following commands from your workspace root:`));
             console.log(chalk.yellow(`   git submodule add https://github.com/${actualGithubRepo}.git utilities/${type}/${name}`));
             console.log(chalk.yellow(`   git add .gitmodules`));
             console.log(chalk.yellow(`   git commit -m "Add ${name} as a submodule"`));
           }
         }
       } catch (error) {
-        console.error(chalk.red(`❌ Could not add as submodule: ${error instanceof Error ? error.message : 'Unknown error'}`));
-        console.log(chalk.yellow(`💡 The project has been created but not added as a submodule.`));
-        console.log(chalk.yellow(`💡 To add it manually, run the following commands from your workspace root:`));
-        console.log(chalk.yellow(`   git submodule add https://github.com/${actualGithubRepo}.git utilities/${type}/${name}`));
-        console.log(chalk.yellow(`   git add .gitmodules`));
-        console.log(chalk.yellow(`   git commit -m "Add ${name} as a submodule"`));
+        console.log(chalk.red(`❌ Failed to add as submodule: ${error instanceof Error ? error.message : 'unknown error'}`));
       }
     } else {
       console.log(chalk.green(`✅ Git repository initialized locally`));
+      console.log(chalk.blue(`💡 Since no GitHub repository was created, the project will not be added as a submodule.`));
+      console.log(chalk.blue(`💡 If you want to add it as a submodule later, first create a GitHub repository and then run:`));
+      console.log(chalk.yellow(`   git remote add origin <your-github-repo-url>`));
+      console.log(chalk.yellow(`   git push -u origin main`));
+      console.log(chalk.yellow(`   cd ${workspaceRoot}`));
+      console.log(chalk.yellow(`   git submodule add <your-github-repo-url> utilities/${type}/${name}`));
     }
+
+    console.log(chalk.green.bold('\n✅ Project created successfully!'));
+    console.log(chalk.blue('Next steps:'));
+    console.log(`  1. Navigate to the new project: ${chalk.yellow(`cd utilities/${type}/${name}`)}`);
+    console.log(`  2. Read the README.md for specific setup instructions`);
+    console.log(`  3. Start developing!\n`);
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to create utility: ${error.message}`);
