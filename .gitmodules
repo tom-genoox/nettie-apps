@@ -1,6 +1,3 @@
-[submodule "curated-db"]
-	path = apps/curated-db
-	url = https://github.com/tom-genoox/curated-db
 [submodule "franklin-id"]
 	path = utilities/frontend/franklin-id
 	url = https://github.com/tom-genoox/franklin-id
