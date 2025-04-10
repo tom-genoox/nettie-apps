@@ -13,6 +13,3 @@
 [submodule "apps/franklin-id"]
 	path = apps/franklin-id
 	url = https://github.com/genoox-nettie/franklin-id.git
-[submodule "apps/mobile-assay-config"]
-	path = apps/mobile-assay-config
-	url = https://github.com/genoox-nettie/mobile-assay-config.git
