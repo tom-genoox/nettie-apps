@@ -4,9 +4,6 @@
 [submodule "panel-app"]
 	path = apps/panel-app
 	url = https://github.com/eyal-elkevity/panel-app.git
-[submodule "apps/kit-validator"]
-	path = apps/kit-validator
-	url = https://github.com/genoox-nettie/kit-validator.git
 [submodule "apps/gene-pathway-manage"]
 	path = apps/gene-pathway-manage
 	url = https://github.com/genoox-nettie/gene-pathway-manage.git
